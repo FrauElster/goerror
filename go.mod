@@ -1,4 +1,4 @@
-module FrauElster/goerror
+module github.com/FrauElster/goerror
 
 go 1.21.7
 
