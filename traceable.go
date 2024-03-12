@@ -2,6 +2,7 @@ package goerror
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"runtime"
 )
@@ -32,16 +33,19 @@ type traceableErrorImpl struct {
 
 func (e traceableErrorImpl) GetMessage() string { return e.Message }
 
+// WithError sets the err to the TraceableError
 func (e traceableErrorImpl) WithError(err error) TraceableError {
-	e.Err = err
+	e.Err = errors.Join(e.Err, err)
 	return e
 }
 
+// WithMessage sets the message to the TraceableError
 func (e traceableErrorImpl) WithMessage(message string) TraceableError {
 	e.Message = message
 	return e
 }
 
+// WithOrigin applies the calles file location to TraceableError
 func (e traceableErrorImpl) WithOrigin() TraceableError {
 	_, file, line, ok := runtime.Caller(1)
 	if !ok {
@@ -52,6 +56,7 @@ func (e traceableErrorImpl) WithOrigin() TraceableError {
 	return e
 }
 
+// MarshalJSON implements the Marshaller interface
 func (e traceableErrorImpl) MarshalJSON() ([]byte, error) {
 	return json.Marshal(struct {
 		Id      string `json:"id"`
@@ -62,6 +67,8 @@ func (e traceableErrorImpl) MarshalJSON() ([]byte, error) {
 	})
 }
 
+// Error implements the Error interface.
+// It returns a composition of Error.Code, message (if available), underlying error (if available), and origin (if available)
 func (e traceableErrorImpl) Error() string {
 	asString := e.Code
 	if e.Message != "" {
@@ -78,6 +85,7 @@ func (e traceableErrorImpl) Error() string {
 
 func (e traceableErrorImpl) Unwrap() error { return e.Err }
 
+// Is implements errors.Is interface, to check equality on error Id
 func (e traceableErrorImpl) Is(target error) bool {
 	targetErr, ok := target.(traceableErrorImpl)
 	if !ok {
